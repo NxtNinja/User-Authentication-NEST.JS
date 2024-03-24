@@ -29,6 +29,7 @@
 - **Request Body:**
   ```json
   {
+    "name": "fName lName",
     "email": "user@example.com",
     "password": "password123"
   }
