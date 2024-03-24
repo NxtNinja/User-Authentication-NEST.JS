@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  Res,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto, LoginAuthAuthDto } from './dto/create-auth.dto';
@@ -12,11 +13,13 @@ import { Tokens } from './types/tokens.types';
 import { RefreshTokenGuard } from './common/guards/refresh.guard';
 import { getCurrentUser } from './common/decorators/getCurrentUser.decorator';
 import { Public } from './common/decorators/public.decorator';
+import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Public()
   @Post('/signup')
   signup(@Body() createAuthDto: CreateAuthDto): Promise<Tokens> {
     return this.authService.signup(createAuthDto);
@@ -25,8 +28,20 @@ export class AuthController {
   @Public()
   @Post('/login')
   @HttpCode(HttpStatus.OK)
-  login(@Body() loginAuthDto: LoginAuthAuthDto): Promise<Tokens> {
-    return this.authService.login(loginAuthDto);
+  async login(
+    @Body() loginAuthDto: LoginAuthAuthDto,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<Tokens> {
+    const tokens = await this.authService.login(loginAuthDto);
+
+    res.cookie('access_token', tokens.access_token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 60 * 5,
+    });
+
+    return tokens;
   }
 
   @Post('/logout')
